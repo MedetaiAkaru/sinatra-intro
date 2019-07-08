@@ -172,3 +172,203 @@ into unit tests for models, controller tests for routes, and feature tests,
 which check the actual behavior for users.
 
 
+# Sinatra Walkthrough
+
+We're going to create an app called FishDB, the world's greatest fish database.
+
+# Getting Started
+
+## Load the appropriate gems
+
+Look at the Gemfile. These are the gems associated with the project.
+
+Can you find out how they are loaded? (There are no 'require' statements!)
+
+## Release 0: Look at initial version
+
+In application_controller.rb
+
+```rb
+get "/" do
+  "Welcome to Sinatra!"
+end
+```
+
+> What is `get`?
+
+> What is `/`?
+
+To run the server, type:
+
+```
+shotgun
+```
+
+You should see this:
+
+```
+== Shotgun/WEBrick on http://127.0.0.1:9393/
+[2019-07-08 10:52:36] INFO  WEBrick 1.4.2
+[2019-07-08 10:52:36] INFO  ruby 2.6.3 (2019-04-16) [x86_64-darwin18]
+[2019-07-08 10:52:36] INFO  WEBrick::HTTPServer#start: pid=9165 port=9393
+```
+
+You can now view your app in your browser.
+
+> Sinatra apps use port 9393. To view a Sinatra app, you go to `localhost:9393` in your browser.
+
+## Release 1: Change view to use ERB
+
+
+By default, Sinatra looks for all its views in a `views` folder.
+
+These files should end with the name `.erb`
+
+There is already an index.erb file created for you. Try changing '/' to redirect to the ERB file
+
+```rb
+  get "/" do
+  	erb :index
+  end
+```
+
+## Release 2: Add main layout and index view
+
+You can also use layouts in Sinatra. This allows you to modularise your HTML files
+
+```rb
+get "/" do
+erb :my_view, layout: :my_layout
+end
+```
+
+Aside from that, they work the exact same way.
+
+> What one line of ERB code must you have in a layout in order for it to be able to include other views?
+
+## Release 3: Add show view
+
+In Sinatra, routes work like this:
+
+| If you go to localhost:1234/... | it matches this route | and `params[:id]` equals | `params[:tag_id]` |
+|:--- |:--- |:--- |:--- |
+| `/tags/32` | `/tags/:id` | 32 | nil |
+| `/tags/32/items` | `/tags/:tag_id/items` | nil | 32 |
+| `/tags/32/items/19` | `/tags/:tag_id/items/:id` | 19 | 32 |
+
+So if you define a route with `get "/tags/:id" do`, inside it you will have access to `params[:id]`.
+
+You don't *have* to put an ID in the URL. It can be anything you want, as long as it doesn't contain spaces or punctuation besides `-` and `_`. Why not use the fish's name?
+
+Have the show page display all the "things" that share that fish.
+
+## Release 4: Add styling
+
+By default, Sinatra looks for "static assets" (stylesheets, images, and javascript) in a folder called `public`. Don't include `public` when linking to these files, but *do* begin the link with a slash `/`.
+
+## Release 5: Add a database connection
+
+In this case we're going to use a SQLite3 database. 
+
+Let's add a ActiveRecord database connection in your Gemfile
+```
+gem 'sinatra-activerecord'
+gem 'sqlite3'
+gem 'rake'
+```
+
+You also need a config/database.yml file
+
+```
+development:
+  adapter: sqlite3
+  database: db/development.sqlite
+  pool: 5
+  timeout: 5000
+```
+
+Do a `bundle install`
+
+SQLite3 saves all your data in a single file *in the same directory as your app*.
+
+You will also need to create a Rakefile
+```
+require_relative './config/environment'
+require 'sinatra/activerecord/rake'
+```
+
+ and add 
+
+```
+  register Sinatra::ActiveRecordExtension
+```
+  to your application_controller.rb
+
+## Release 6: Create the migration
+
+Create a migration file using rake db:create_migration
+
+```
+bundle exec rake db:create_migration NAME=create_fishes 
+```
+
+```rb
+class CreateFishes < ActiveRecord::Migration[5.2]
+  def change
+    create_table :fish do |t|
+        t.string  :name
+        t.string  :image_url
+        t.text    :description
+    end
+  end
+end
+```
+
+Now, run rake db:migrate
+
+When you do this, you should see a new file pop up with the name of your database. You won't be able to read it -- it's in binary.
+
+## Release 7: Add model
+
+Create the corresponding model for the table
+
+```rb
+class Fish < ActiveRecord::Base
+
+end
+```
+
+## Release 8: Add seed
+
+```rb
+Fish.destroy_all
+
+Fish.create([
+  {
+    name: "Clownfish",
+    image_url: "http://www.leisurepro.com/blog/wp-content/uploads/2010/04/Ocellaris-Clownfish.jpg",
+    description: "This fish really isn't very funny."
+  },
+  {
+    name: "Goldfish",
+    image_url: "http://www.newsworks.org/images/stories/flexicontent/l_shutterstock_goldfish_1200x675.jpg",
+    description: "Named for Goldie Hawn. Its name has nothing to do with its color."
+  }
+])
+```
+
+Feel free to make your own fish!
+
+## Release 9: Incorporate data into view
+
+You'll need to write some actual HTML (with ERB included).
+
+## Release 10: Add form and POST route
+
+You'll need to write HTML.
+
+> Think back: Which HTTP method do we associate with creating new data?
+
+> If GET routes are made using `get "/something" do`, how would you write a route for that HTTP method?
+
+> `puts params` may be helpful.
